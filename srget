@@ -1,0 +1,111 @@
+#!/usr/bin/php
+
+<?php
+define("CACHE_FILE", "./cache.json");
+define("DOWNLOAD_DIR", "./audio");
+
+function downloadEpisode($episodeUrl) {
+	if (!is_dir(DOWNLOAD_DIR)) {
+		mkdir(DOWNLOAD_DIR);
+	}
+
+	echo "Getting details for $episodeUrl... ";
+
+	preg_match('/\/(\d+)\?.*$/', $episodeUrl, $matches);
+	$episodeId = count($matches) > 0 ? $matches[1] : 0;
+	$episodeUrlPath = preg_replace('/https?:\/\/[^\/]*/', '', $episodeUrl);
+
+	$detailsUrlPrefix = 'http://sverigesradio.se/sida/ajax/getplayerinfo?url=';
+	$detailsUrlSuffix = '&isios=false&playertype=html5';
+	$detailsUrl = $detailsUrlPrefix . urlencode($episodeUrlPath . "&playepisode=$episodeId") . $detailsUrlSuffix;
+
+	$detailsRequest = curl_init($detailsUrl);
+	curl_setopt($detailsRequest, CURLOPT_RETURNTRANSFER, true);
+	$details = json_decode(curl_exec($detailsRequest), true);
+	curl_close($detailsRequest);
+
+	if (isset($details['playerInfo']['AudioSources'])) {
+		echo "Audio available!\n";
+
+		$filename = $details['playerInfo']['Title'];
+		echo "Downloading $filename... ";
+
+		$audioSource = array_reduce($details['playerInfo']['AudioSources'], function($result, $source) {
+			return $source['Quality'] > $result['Quality'] ? $source : $result;
+		}, ['Quality' => 0]);
+
+		$audioRequest = curl_init($audioSource['Url']);
+		$fileHandle = fopen(DOWNLOAD_DIR . '/' . $filename, 'w');
+
+		curl_setopt($audioRequest, CURLOPT_FILE, $fileHandle);
+		curl_exec($audioRequest);
+		curl_close($audioRequest);
+		fclose($fileHandle);
+
+		echo "Done!\n";
+		return true;
+	} else {
+		echo "No audio available :(\n";
+		return false;
+	}
+}
+
+function getLatestEpisodes($programId) {
+	$feedUrl = "http://api.sr.se/api/rss/program/$programId";
+
+	$request = curl_init($feedUrl);
+	curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+	$result = curl_exec($request);
+	curl_close($request);
+
+	$feed = new DOMDocument('1.0', 'utf-8');
+	$feed->loadXML($result);
+
+	$cache = is_file(CACHE_FILE) ? json_decode(file_get_contents(CACHE_FILE), true) : [];
+
+	$entries = iterator_to_array($feed->getElementsByTagName('entry'));
+	$parsedEntries = array_map(function($entry) {
+		return [
+			'id' => $entry->getElementsByTagName('id')->item(0)->textContent,
+			'title' => $entry->getElementsByTagName('title')->item(0)->textContent,
+			'published' => $entry->getElementsByTagName('published')->item(0)->textContent,
+			'updated' => $entry->getElementsByTagName('updated')->item(0)->textContent
+		];
+	}, $entries);
+
+	$newEntries = array_filter($parsedEntries, function($entry) use ($cache) {
+		$existingEntry = array_filter($cache, function($innerEntry) use ($entry) {
+			return $entry['id'] === $innerEntry->id;
+		});
+
+		return count($existingEntry) === 0;
+	});
+
+	$downloadedEntries = array_filter($newEntries, function($entry) {
+		$redirRequest = curl_init($entry['id']);
+		curl_setopt($redirRequest, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($redirRequest, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($redirRequest, CURLOPT_MAXREDIRS, 5);
+		curl_exec($redirRequest);
+		$redirectedUrl = curl_getinfo($redirRequest, CURLINFO_EFFECTIVE_URL);
+		curl_close($redirRequest);
+
+		return downloadEpisode($redirectedUrl) ? $entry : false;
+	});
+
+	file_put_contents(CACHE_FILE, json_encode(array_values($downloadedEntries)));
+}
+
+if ($argc < 3) {
+	echo "Too few arguments, use the following format:\n./srget [watch|get] [url]\n";
+	exit(1);
+} else {
+	if ($argv[1] === 'watch') {
+		preg_match('/programid=(\d+)/', $argv[2], $matches);
+		getLatestEpisodes($matches[1]);
+	} else if ($argv[1] === 'get') {
+		downloadEpisode($argv[2]);
+	}
+
+	echo "All done!\n";
+}
