@@ -2,11 +2,13 @@
 > [Sveriges Radio](sverigesradio.se) (SR) local cache tool
 
 You can use this script to download all the available audio files from a show's
-feed, or to download the audio from an individual episode. If you use it to
-download audio from the feed of a show, a local cache is kept to keep track of
-what episodes have already been downloaded. That means you can run the script
-periodically with the same arguments to get an up-to-date local copy of all the
-episodes of an SR show.
+feed, or to download the audio from an individual episode.
+
+When used to download audio from the feed of a show, a local cache is saved to
+keep track of what episodes have been downloaded. That means you can run the
+script periodically with the same arguments to get an up-to-date local copy of
+all the episodes of an SR show (ie. this script is
+[cron](https://en.wikipedia.org/wiki/Cron) friendly).
 
 ## Prerequisites
 To run the script you need to have PHP (including the `php-json` extension)
@@ -24,14 +26,15 @@ $ chmod +x srget
 
 ## Usage
 The script takes a sverigesradio.se URL as the only argument and automatically
-recognizes whether it leads to show or an episode. Here's an example of how to
-download an individual episode:
+recognizes whether it leads to a show or an episode.
+
+You can download an individual episode like this:
 ```sh
 $ ./srget http://sverigesradio.se/sida/avsnitt/652692?programid=2794
 ```
 
-And here's an example of how to download the latest available episodes of a show
-that haven't already been downloaded:
+And you can download the latest episodes of a show (that haven't already been
+downloaded) like this:
 ```sh
 $ ./srget http://sverigesradio.se/sida/avsnitt?programid=516
 ```
