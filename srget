@@ -1,5 +1,4 @@
 #!/usr/bin/php
-
 <?php
 define("CACHE_FILE", "./cache.json");
 define("DOWNLOAD_DIR", "./audio");
@@ -96,15 +95,15 @@ function getLatestEpisodes($programId) {
 	file_put_contents(CACHE_FILE, json_encode(array_values($downloadedEntries)));
 }
 
-if ($argc < 3) {
-	echo "Too few arguments, use the following format:\n./srget [watch|get] [url]\n";
+if ($argc < 2) {
+	echo "You need to supply an URL to a show or an episode\n";
 	exit(1);
 } else {
-	if ($argv[1] === 'watch') {
-		preg_match('/programid=(\d+)/', $argv[2], $matches);
+	if (preg_match('/^https?:\/\/sverigesradio.se\/sida\/avsnitt\?programid=\d+$/', $argv[1]) === 1) {
+		preg_match('/programid=(\d+)/', $argv[1], $matches);
 		getLatestEpisodes($matches[1]);
-	} else if ($argv[1] === 'get') {
-		downloadEpisode($argv[2]);
+	} else if (preg_match('/^https?:\/\/sverigesradio.se\/sida\/avsnitt\/\d+\/$/', $argv[1]) === 1) {
+		downloadEpisode($argv[1]);
 	}
 
 	echo "All done!\n";

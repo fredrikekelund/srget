@@ -15,16 +15,25 @@ on OS X PHP should already be installed, and for Windows you can download an
 installer [here](http://php.net/downloads.php). This script has only been tested
 with PHP 5.6.
 
-## Usage
-To download an individual episode, run:
+## Installation
+To use this script, download the `srget` file and give it permission to be
+executed as a program. To set those permissions on Linux or OS X, simply run:
 ```sh
-$ ./srget get http://sverigesradio.se/sida/avsnitt/652692?programid=2794
+$ chmod +x srget
 ```
 
-To download the latest available episodes (that haven't already been downloaded)
-from the feed of a show, run:
+## Usage
+The script takes a sverigesradio.se URL as the only argument and automatically
+recognizes whether it leads to show or an episode. Here's an example of how to
+download an individual episode:
 ```sh
-$ ./srget watch http://sverigesradio.se/sida/avsnitt?programid=516
+$ ./srget http://sverigesradio.se/sida/avsnitt/652692?programid=2794
+```
+
+And here's an example of how to download the latest available episodes of a show
+that haven't already been downloaded:
+```sh
+$ ./srget http://sverigesradio.se/sida/avsnitt?programid=516
 ```
 
 ### Moving the audio files
