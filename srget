@@ -74,7 +74,7 @@ function getLatestEpisodes($programId) {
 
 	$newEntries = array_filter($parsedEntries, function($entry) use ($cache) {
 		$existingEntry = array_filter($cache, function($innerEntry) use ($entry) {
-			return $entry['id'] === $innerEntry->id;
+			return $entry['id'] === $innerEntry['id'];
 		});
 
 		return count($existingEntry) === 0;
@@ -92,7 +92,7 @@ function getLatestEpisodes($programId) {
 		return downloadEpisode($redirectedUrl) ? $entry : false;
 	});
 
-	file_put_contents(CACHE_FILE, json_encode(array_values($downloadedEntries)));
+	file_put_contents(CACHE_FILE, json_encode(array_values(array_merge($cache, $downloadedEntries))));
 }
 
 if ($argc < 2) {
